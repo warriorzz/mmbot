@@ -1,5 +1,6 @@
 package com.github.warriorzz.bot.commands
 
+import com.github.warriorzz.bot.MMBot
 import com.github.warriorzz.bot.asTextEmoji
 import com.github.warriorzz.bot.checkAnimated
 import com.github.warriorzz.bot.config.Config
@@ -27,6 +28,7 @@ import dev.kord.x.emoji.Emojis
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
@@ -47,7 +49,7 @@ abstract class AbstractCommand {
     val chainList = HashMap<Snowflake, ConfigurationChain?>()
     private lateinit var kord: Kord
 
-    abstract suspend fun invoke(interaction: CommandInteraction)
+    abstract suspend fun invoke(interaction: CommandInteraction) : ConfigurationChain?
     protected open suspend fun invokeButtonReaction(interaction: ButtonInteraction) {}
 
     open suspend fun register(kord: Kord) {
@@ -80,7 +82,18 @@ abstract class AbstractCommand {
                         it.interaction.respondHasNoPermission()
                         return@onEach
                     }
-                    invoke(it.interaction as CommandInteraction)
+                    val chain = invoke(it.interaction as CommandInteraction)
+                    MMBot.launch {
+                        delay(15 * 60 * 1000)
+                        if (chainList[it.interaction.user.id]?.id == chain?.id) {
+                            chain?.exited = true
+                            val userId = it.interaction.user.id
+                            val channelId = it.interaction.channelId
+                            buttonInteractionChainList[Pair(userId, channelId)] = null
+                            messageInteractionChainList[Pair(userId, channelId)] = null
+                            menuInteractionChainList[Pair(userId, channelId)] = null
+                        }
+                    }
                 } catch (exception: Exception) {
                     exception.printStackTrace()
                 }
@@ -148,7 +161,7 @@ class ConfigurationChain(private val command: AbstractCommand) {
     val id = randomString()
     private var ephemeralResponse: EphemeralInteractionResponseBehavior? = null
     var start: EmbedBuilder.() -> Unit = {}
-    private var exited = false
+    internal var exited = false
 
     fun append(builder: ConfigurationChainElement.() -> Unit) {
         _list.add(ConfigurationChainElement(this).apply(builder))

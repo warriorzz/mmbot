@@ -22,7 +22,7 @@ object GuildConfigurationCommand : AbstractCommand() {
     override var mustBeOwner: Boolean = true
     override var buttonPrefix: String = name
 
-    override suspend fun invoke(interaction: CommandInteraction) {
+    override suspend fun invoke(interaction: CommandInteraction) : ConfigurationChain {
         val roles = HashMap<String, Snowflake>()
         MMBot.kord.getGuild(interaction.data.guildId.value!!)?.roles?.map {
             it.name to it.id
@@ -88,5 +88,6 @@ object GuildConfigurationCommand : AbstractCommand() {
             }
         }
         chain.start(interaction)
+        return chain
     }
 }

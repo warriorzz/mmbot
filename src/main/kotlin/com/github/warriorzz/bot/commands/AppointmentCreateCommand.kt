@@ -37,7 +37,7 @@ object AppointmentCreateCommand : AbstractCommand() {
     override var buttonPrefix: String = name
     override var mustBeOwner: Boolean = false
 
-    override suspend fun invoke(interaction: CommandInteraction) {
+    override suspend fun invoke(interaction: CommandInteraction) : ConfigurationChain? {
         val guildConfiguration =
             MMBot.Database.collections.guildConfigurations.findOne(GuildConfiguration::guildId eq interaction.data.guildId.asOptional.value)
         if (!interaction.user.asMember(interaction.data.guildId.value ?: Snowflake(-1)).roleIds.contains(
@@ -49,7 +49,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     title = "NO PERMISSION"
                 }
             }
-            return
+            return null
         }
         val roles = HashMap<String, Snowflake>()
         MMBot.kord.getGuild(interaction.data.guildId.value!!)?.roles?.map {
@@ -397,6 +397,7 @@ object AppointmentCreateCommand : AbstractCommand() {
             }
         }
         chain.start(interaction)
+        return chain
     }
 
     override suspend fun invokeButtonReaction(interaction: ButtonInteraction) {
