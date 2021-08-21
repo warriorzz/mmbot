@@ -186,6 +186,11 @@ enum class Game(val id: String, val value: String, val thumbnailUrl: String, val
         "specialevent",
         "Special Events",
         "https://i.ytimg.com/vi/XyX59LtClXE/maxresdefault.jpg"
+    ),
+    LOL(
+        "lol",
+        "League of Legends",
+        "https://yt3.ggpht.com/-AEerXPqHm3M/AAAAAAAAAAI/AAAAAAAAAAA/S8WpkwxItLQ/s900-c-k-no-mo-rj-c0xffffff/photo.jpg"
     );
 
     fun fromId(string: String) = values().first { it.id == string.trim() }
