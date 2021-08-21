@@ -40,15 +40,24 @@ object GuildConfigurationCommand : AbstractCommand() {
                     description = "Please select a role"
                 }
                 startActionRowBuilder = {
-                    selectMenu(this@apply.id + "-role") {
-                        roles.forEach { role ->
-                            option(role.key, role.value.value.toString())
+                    selectMenu("1"+ this@apply.id + "-role") {
+                        if (roles.size > 25) {
+                            var counter = 0
+                            roles.map { it.key to it.value }.shuffled().forEach {
+                                if (counter == 25) return@forEach
+                                option(it.first, it.second.value.toString())
+                                counter++
+                            }
+                        } else {
+                            roles.forEach { role ->
+                                option(role.key, role.value.value.toString())
+                            }
                         }
                     }
                 }
 
                 executeMenuInteraction = {
-                    if (this.componentId == this@apply.id + "-role") {
+                    if (this.componentId.substring(1) == this@apply.id + "-role") {
                         val acknowledged = this.acknowledgeEphemeral()
                         val role = this.values.first().toLong()
                         val configuration =
