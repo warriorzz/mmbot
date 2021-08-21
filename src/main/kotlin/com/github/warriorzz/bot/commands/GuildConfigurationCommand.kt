@@ -40,7 +40,7 @@ object GuildConfigurationCommand : AbstractCommand() {
                     description = "Please select a role"
                 }
                 startActionRowBuilder = {
-                    selectMenu("1"+ this@apply.id + "-role") {
+                    selectMenu("1" + this@apply.id + "-role") {
                         if (roles.size > 25) {
                             var counter = 0
                             roles.map { it.key to it.value }.shuffled().forEach {
