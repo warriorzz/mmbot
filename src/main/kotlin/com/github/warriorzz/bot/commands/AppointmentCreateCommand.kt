@@ -263,8 +263,17 @@ object AppointmentCreateCommand : AbstractCommand() {
                 }
                 startActionRowBuilder = {
                     selectMenu(this@apply.id + "-role") {
-                        roles.forEach { role ->
-                            option(role.key, role.value.value.toString())
+                        if (roles.size > 25) {
+                            var counter = 0
+                            roles.map { it.key to it.value }.shuffled().forEach {
+                                if (counter == 25) return@forEach
+                                option(it.first, it.second.value.toString())
+                                counter++
+                            }
+                        } else {
+                            roles.forEach { role ->
+                                option(role.key, role.value.value.toString())
+                            }
                         }
                     }
                 }
