@@ -1,13 +1,13 @@
-FROM adoptopenjdk/openjdk15 as builder
+FROM adoptopenjdk/openjdk16:alpine as builder
 
 COPY . .
 
 RUN ./gradlew --no-daemon installDist
 
-FROM adoptopenjdk/openjdk15
+FROM adoptopenjdk/openjdk16:alpine
 
-WORKDIR /user/app
+WORKDIR /usr/app
 
 COPY --from=builder build/install/mmbot ./
 
-ENTRYPOINT ["/user/app/bin/mmbot"]
+ENTRYPOINT ["/usr/app/bin/mmbot"]
