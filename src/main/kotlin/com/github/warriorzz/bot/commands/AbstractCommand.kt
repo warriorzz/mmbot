@@ -49,7 +49,7 @@ abstract class AbstractCommand {
     val chainList = HashMap<Snowflake, ConfigurationChain?>()
     private lateinit var kord: Kord
 
-    abstract suspend fun invoke(interaction: CommandInteraction) : ConfigurationChain?
+    abstract suspend fun invoke(interaction: CommandInteraction): ConfigurationChain?
     protected open suspend fun invokeButtonReaction(interaction: ButtonInteraction) {}
 
     open suspend fun register(kord: Kord) {

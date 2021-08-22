@@ -22,7 +22,7 @@ object GuildConfigurationCommand : AbstractCommand() {
     override var mustBeOwner: Boolean = true
     override var buttonPrefix: String = name
 
-    override suspend fun invoke(interaction: CommandInteraction) : ConfigurationChain {
+    override suspend fun invoke(interaction: CommandInteraction): ConfigurationChain {
         val roles = HashMap<String, Snowflake>()
         MMBot.kord.getGuild(interaction.data.guildId.value!!)?.roles?.map {
             it.name to it.id
@@ -78,7 +78,8 @@ object GuildConfigurationCommand : AbstractCommand() {
                         acknowledged.edit {
                             embed {
                                 title = "Success!"
-                                description = "${Emojis.checkAnimated.asTextEmoji()} <@&$role> can now create appointments!"
+                                description =
+                                    "${Emojis.checkAnimated.asTextEmoji()} <@&$role> can now create appointments!"
                                 color = Color(0, 255, 0)
                             }
                             components = mutableListOf()

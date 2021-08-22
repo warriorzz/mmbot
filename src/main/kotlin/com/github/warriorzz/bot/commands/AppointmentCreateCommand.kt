@@ -37,7 +37,7 @@ object AppointmentCreateCommand : AbstractCommand() {
     override var buttonPrefix: String = name
     override var mustBeOwner: Boolean = false
 
-    override suspend fun invoke(interaction: CommandInteraction) : ConfigurationChain? {
+    override suspend fun invoke(interaction: CommandInteraction): ConfigurationChain? {
         val guildConfiguration =
             MMBot.Database.collections.guildConfigurations.findOne(GuildConfiguration::guildId eq interaction.data.guildId.asOptional.value)
         if (!interaction.user.asMember(interaction.data.guildId.value ?: Snowflake(-1)).roleIds.contains(
@@ -112,7 +112,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     val message = this
                     this@append.edit {
                         title = "Success!"
-                        description = "${Emojis.checkAnimated.asTextEmoji()} \"${message.content}\" was accepted as title."
+                        description =
+                            "${Emojis.checkAnimated.asTextEmoji()} \"${message.content}\" was accepted as title."
                         color = Color(0, 255, 0)
                     }
                 }
@@ -124,7 +125,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     title = "Time"
                     options["time"] = LocalDateTime.now().toInstant(ZoneOffset.ofHours(0))?.epochSecond?.times(1000L)
                         ?: System.currentTimeMillis()
-                    description = "Please provide the time of the appointment. Current selected time: ${(options["time"] as Long).toDateString()}"
+                    description =
+                        "Please provide the time of the appointment. Current selected time: ${(options["time"] as Long).toDateString()}"
                 }
                 startActionRowBuilder = {
                     interactionButton(ButtonStyle.Danger, "$id-0") {
@@ -158,7 +160,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                             if ((options["time"] as Long) <= System.currentTimeMillis()) {
                                 this@append.edit {
                                     title = "Error!"
-                                    description = "${Emojis.crossAnimated.asTextEmoji()} ${(options["time"] as Long).toDateString()} is too early!"
+                                    description =
+                                        "${Emojis.crossAnimated.asTextEmoji()} ${(options["time"] as Long).toDateString()} is too early!"
                                     color = Color(255, 0, 0)
                                 }
                                 return@validateButtonInteraction false
@@ -184,7 +187,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                 executeButtonInteraction = {
                     this@append.edit(true) {
                         title = "Success!"
-                        description = "${Emojis.checkAnimated.asTextEmoji()} ${(options["time"] as Long).toDateString()} was selected!"
+                        description =
+                            "${Emojis.checkAnimated.asTextEmoji()} ${(options["time"] as Long).toDateString()} was selected!"
                         color = Color(0, 255, 0)
                     }
                 }
@@ -203,7 +207,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     if (!matches) {
                         this@append.edit {
                             title = "Error!"
-                            description = "${Emojis.crossAnimated.asTextEmoji()} \"${message.content}\" is not a valid amount!"
+                            description =
+                                "${Emojis.crossAnimated.asTextEmoji()} \"${message.content}\" is not a valid amount!"
                             color = Color(255, 0, 0)
                         }
                     }
@@ -215,7 +220,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     val message = this
                     this@append.edit {
                         title = "Success!"
-                        description = "${Emojis.checkAnimated.asTextEmoji()} ${message.content} players will be counted in!"
+                        description =
+                            "${Emojis.checkAnimated.asTextEmoji()} ${message.content} players will be counted in!"
                         color = Color(0, 255, 0)
                     }
                 }
@@ -410,7 +416,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                         acknowledged.edit {
                             embed {
                                 title = "Error!"
-                                description = "${Emojis.crossAnimated.asTextEmoji()} There are already enough players registered!"
+                                description =
+                                    "${Emojis.crossAnimated.asTextEmoji()} There are already enough players registered!"
                                 color = Color(255, 0, 0)
                             }
                         }
@@ -446,7 +453,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     acknowledged.edit {
                         embed {
                             title = "Joined!"
-                            description = "${Emojis.checkAnimated.asTextEmoji()} You are now counted in for ${actMatch.name}."
+                            description =
+                                "${Emojis.checkAnimated.asTextEmoji()} You are now counted in for ${actMatch.name}."
                             color = Color(0, 255, 0)
                         }
                     }
@@ -454,7 +462,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     acknowledged.edit {
                         embed {
                             title = "Error!"
-                            description = "${Emojis.crossAnimated.asTextEmoji()} You are already registered for this appointment!"
+                            description =
+                                "${Emojis.crossAnimated.asTextEmoji()} You are already registered for this appointment!"
                             color = Color(255, 0, 0)
                         }
                     }
@@ -499,7 +508,8 @@ object AppointmentCreateCommand : AbstractCommand() {
                     acknowledged.edit {
                         embed {
                             title = "Error!"
-                            description = "${Emojis.crossAnimated.asTextEmoji()} You aren't registered for this appointment!"
+                            description =
+                                "${Emojis.crossAnimated.asTextEmoji()} You aren't registered for this appointment!"
                             color = Color(255, 0, 0)
                         }
                     }
@@ -509,10 +519,12 @@ object AppointmentCreateCommand : AbstractCommand() {
                         acknowledged.edit {
                             embed {
                                 title = "Error!"
-                                description = "${Emojis.crossAnimated.asTextEmoji()} You haven't created this appointment, so you can't cancel it!"
+                                description =
+                                    "${Emojis.crossAnimated.asTextEmoji()} You haven't created this appointment, so you can't cancel it!"
                                 color = Color(255, 0, 0)
                             }
                         }
+                        return
                     }
                     val guild = MMBot.kord.getGuild(actMatch.guild!!)
                     (guild?.getChannel(actMatch.channel!!) as TextChannel).getMessage(actMatch.message!!).delete()
