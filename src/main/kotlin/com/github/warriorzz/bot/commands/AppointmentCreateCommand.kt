@@ -32,7 +32,7 @@ import java.time.ZoneOffset
 
 @OptIn(KordPreview::class)
 object AppointmentCreateCommand : AbstractCommand() {
-    override val name: String = "create"
+    override val name: String = "appointment"
     override val description: String = "Create a new appointment for a game"
     override var buttonPrefix: String = name
     override var mustBeOwner: Boolean = false
