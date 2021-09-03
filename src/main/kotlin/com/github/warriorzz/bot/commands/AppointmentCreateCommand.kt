@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 import org.litote.kmongo.eq
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -129,7 +128,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     description =
                         "Please provide the time of the appointment. Current selected time: ${(options["time"] as Long).toDateString()}"
                 }
-                startActionRowBuilder = listOf( {
+                startActionRowBuilder = listOf({
                     interactionButton(ButtonStyle.Danger, "$id-2") {
                         label = "- 5m"
                     }
@@ -161,7 +160,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     interactionButton(ButtonStyle.Danger, "$id-9") {
                         label = "+ 1h"
                     }
-                } )
+                })
 
                 validateButtonInteraction = validateButtonInteraction@{
                     if (!this.componentId.startsWith(this@apply.id)) return@validateButtonInteraction false
