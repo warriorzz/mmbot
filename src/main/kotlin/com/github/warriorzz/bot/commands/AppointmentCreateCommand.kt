@@ -15,8 +15,8 @@ import dev.kord.core.behavior.edit
 import dev.kord.core.behavior.interaction.edit
 import dev.kord.core.behavior.interaction.respondEphemeral
 import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.interaction.ApplicationCommandInteraction
 import dev.kord.core.entity.interaction.ButtonInteraction
-import dev.kord.core.entity.interaction.CommandInteraction
 import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.embed
@@ -26,7 +26,9 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import org.litote.kmongo.eq
+import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -37,7 +39,7 @@ object AppointmentCreateCommand : AbstractCommand() {
     override var buttonPrefix: String = name
     override var mustBeOwner: Boolean = false
 
-    override suspend fun invoke(interaction: CommandInteraction): ConfigurationChain? {
+    override suspend fun invoke(interaction: ApplicationCommandInteraction): ConfigurationChain? {
         val guildConfiguration =
             MMBot.Database.collections.guildConfigurations.findOne(GuildConfiguration::guildId eq interaction.data.guildId.asOptional.value)
         if (!interaction.user.asMember(interaction.data.guildId.value ?: Snowflake(-1)).roleIds.contains(
@@ -123,10 +125,10 @@ object AppointmentCreateCommand : AbstractCommand() {
                 type = ConfigurationChain.ConfigurationChainElement.InteractionType.BUTTON
                 startEmbedBuilder = {
                     title = "Time"
-                    options["time"] = LocalDateTime.now().toInstant(ZoneOffset.ofHours(0))?.epochSecond?.times(1000L)
+                    options["time"] = LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0))?.epochSecond
                         ?: System.currentTimeMillis()
                     description =
-                        "Please provide the time of the appointment. Current selected time: ${(options["time"] as Long).toDateString()}"
+                        "Please provide the time of the appointment. Current selected time: ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)}"
                 }
                 startActionRowBuilder = listOf({
                     interactionButton(ButtonStyle.Danger, "$id-2") {
@@ -167,11 +169,11 @@ object AppointmentCreateCommand : AbstractCommand() {
                     when (this.componentId.last().digitToInt()) {
                         in 0..1  -> {
                             this.acknowledgePublic().delete()
-                            if ((options["time"] as Long) <= System.currentTimeMillis()) {
+                            if ((options["time"] as Long) <= LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0)).epochSecond) {
                                 this@append.edit {
                                     title = "Error!"
                                     description =
-                                        "${Emojis.crossAnimated.asTextEmoji()} ${(options["time"] as Long).toDateString()} is too early!"
+                                        "${Emojis.crossAnimated.asTextEmoji()} ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)} is too early!"
                                     color = Color(255, 0, 0)
                                 }
                                 return@validateButtonInteraction false
@@ -179,33 +181,33 @@ object AppointmentCreateCommand : AbstractCommand() {
                             return@validateButtonInteraction true
                         }
                         2 -> {
-                            options["time"] = options["time"] as Long - 5L * 60L * 1000L
+                            options["time"] = options["time"] as Long - 5L * 60L
                         }
                         3 -> {
-                            options["time"] = options["time"] as Long - 1L * 60L * 1000L
+                            options["time"] = options["time"] as Long - 1L * 60L
                         }
                         4 -> {
-                            options["time"] = options["time"] as Long + 1L * 60L * 1000L
+                            options["time"] = options["time"] as Long + 1L * 60L
                         }
                         5 -> {
-                            options["time"] = options["time"] as Long + 5L * 60L * 1000L
+                            options["time"] = options["time"] as Long + 5L * 60L
                         }
                         6 -> {
-                            options["time"] = options["time"] as Long - 60L * 60L * 1000L
+                            options["time"] = options["time"] as Long - 60L * 60L
                         }
                         7 -> {
-                            options["time"] = options["time"] as Long - 15L * 60L * 1000L
+                            options["time"] = options["time"] as Long - 15L * 60L
                         }
                         8 -> {
-                            options["time"] = options["time"] as Long + 15L * 60L * 1000L
+                            options["time"] = options["time"] as Long + 15L * 60L
                         }
                         9 -> {
-                            options["time"] = options["time"] as Long + 60L * 60L * 1000L
+                            options["time"] = options["time"] as Long + 60L * 60L
                         }
                     }
                     this@append.edit {
                         title = "Time"
-                        description = "Current selected time: ${(options["time"] as Long).toDateString()}"
+                        description = "Current selected time: ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)}"
                         color = Color(120, 120, 120)
                     }
                     this.acknowledgePublic().delete()
@@ -216,7 +218,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     this@append.edit(true) {
                         title = "Success!"
                         description =
-                            "${Emojis.checkAnimated.asTextEmoji()} ${(options["time"] as Long).toDateString()} was selected!"
+                            "${Emojis.checkAnimated.asTextEmoji()} ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)} was selected!"
                         color = Color(0, 255, 0)
                     }
                 }
@@ -424,7 +426,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                         )
                     )
                     MMBot.launch {
-                        delay(match.startTime - LocalDateTime.now().toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000)
+                        delay(match.startTime * 1000 - LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000)
                         MMBot.Database.collections.matches.findOneById(match._id)?.start()
                     }
                 }

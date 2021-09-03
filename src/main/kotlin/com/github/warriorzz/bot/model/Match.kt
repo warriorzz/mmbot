@@ -62,7 +62,7 @@ suspend fun Match.renderMessage(): EmbedBuilder.() -> Unit {
     return {
         this.title = title
         field("${Emojis["\uD83C\uDFAE"]} Game", true) { game.value }
-        field("${Emojis.clock} Time", true) { Instant.fromEpochMilliseconds(startTime).toMessageFormat() }
+        field("${Emojis.clock} Time", true) { Instant.fromEpochSeconds(startTime).toMessageFormat() }
         field(
             "${Emojis.firstPlaceMedal} Special Match",
             true
@@ -196,4 +196,14 @@ enum class Game(val id: String, val value: String, val thumbnailUrl: String, val
     fun fromId(string: String) = values().first { it.id == string.trim() }
 }
 
-fun Instant.toMessageFormat() = "<t:$epochSeconds:R>"
+fun Instant.toMessageFormat(style: DiscordTimestampStyle = DiscordTimestampStyle.RelativeTime) = "<t:$epochSeconds:${style.style}>"
+
+enum class DiscordTimestampStyle(val style: String) {
+    ShortTime("t"),
+    LongTime("T"),
+    ShortDate("d"),
+    LongDate("D"),
+    ShortDateTime("f"),
+    LongDateTime("F"),
+    RelativeTime("R"),
+}

@@ -8,7 +8,7 @@ import dev.kord.common.Color
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.interaction.edit
-import dev.kord.core.entity.interaction.CommandInteraction
+import dev.kord.core.entity.interaction.ApplicationCommandInteraction
 import dev.kord.rest.builder.message.modify.embed
 import dev.kord.x.emoji.Emojis
 import kotlinx.coroutines.flow.collect
@@ -22,7 +22,7 @@ object GuildConfigurationCommand : AbstractCommand() {
     override var mustBeOwner: Boolean = true
     override var buttonPrefix: String = name
 
-    override suspend fun invoke(interaction: CommandInteraction): ConfigurationChain {
+    override suspend fun invoke(interaction: ApplicationCommandInteraction): ConfigurationChain {
         val roles = HashMap<String, Snowflake>()
         MMBot.kord.getGuild(interaction.data.guildId.value!!)?.roles?.map {
             it.name to it.id

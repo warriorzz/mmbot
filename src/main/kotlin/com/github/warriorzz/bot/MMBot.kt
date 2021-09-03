@@ -23,6 +23,9 @@ import kotlinx.coroutines.*
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
+import java.time.Clock
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import kotlin.coroutines.CoroutineContext
 
 object MMBot : CoroutineScope {
@@ -31,6 +34,7 @@ object MMBot : CoroutineScope {
 
     internal lateinit var kord: Kord
     private val dockyClient = DockyClient(CIO, Config.DOCKY_URL)
+    internal val commandList: MutableMap<String, String> = mutableMapOf()
 
     @OptIn(KordPreview::class)
     suspend operator fun invoke() {
@@ -42,13 +46,30 @@ object MMBot : CoroutineScope {
         RedeployCommand.register(kord)
         RestartCommand.register(kord)
 
+        if (Config.DEV_ENVIRONMENT) {
+            kord.createGuildApplicationCommands(
+                Config.DEV_GUILD
+            ) {
+                println("registering")
+                commandList.forEach {
+                    input(it.key, it.value) {}
+                }
+            }
+        } else {
+            kord.createGlobalApplicationCommands {
+                commandList.forEach {
+                    input(it.key, it.value) {}
+                }
+            }
+        }
+
         kord.on<ReadyEvent> {
             Database.collections.matches.find().consumeEach { match ->
                 if (System.currentTimeMillis() > match.startTime) {
                     Database.collections.matches.deleteOneById(match._id)
                 } else {
                     launch {
-                        delay(match.startTime - System.currentTimeMillis())
+                        delay(match.startTime * 1000 - LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000)
                         match.start()
                     }
                 }

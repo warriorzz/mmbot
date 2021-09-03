@@ -13,10 +13,7 @@ import dev.kord.core.behavior.interaction.EphemeralInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.edit
 import dev.kord.core.behavior.interaction.respondEphemeral
 import dev.kord.core.entity.Message
-import dev.kord.core.entity.interaction.ButtonInteraction
-import dev.kord.core.entity.interaction.CommandInteraction
-import dev.kord.core.entity.interaction.Interaction
-import dev.kord.core.entity.interaction.SelectMenuInteraction
+import dev.kord.core.entity.interaction.*
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.core.event.interaction.InteractionCreateEvent
 import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
@@ -51,24 +48,14 @@ abstract class AbstractCommand {
     val chainList = HashMap<Snowflake, ConfigurationChain?>()
     private lateinit var kord: Kord
 
-    abstract suspend fun invoke(interaction: CommandInteraction): ConfigurationChain?
+    abstract suspend fun invoke(interaction: ApplicationCommandInteraction): ConfigurationChain?
     protected open suspend fun invokeButtonReaction(interaction: ButtonInteraction) {}
 
     open suspend fun register(kord: Kord) {
         this.kord = kord
-        if (Config.DEV_ENVIRONMENT) {
-            kord.createGuildApplicationCommands(
-                Config.DEV_GUILD
-            ) {
-                input(name, description) {}
-            }
-        } else {
-            kord.createGlobalApplicationCommands {
-                input(name, description) {}
-            }
-        }
+        MMBot.commandList[name] = description
         kord.events.buffer(Channel.UNLIMITED).filterIsInstance<InteractionCreateEvent>()
-            .filter { it.interaction is CommandInteraction && (it.interaction as CommandInteraction).command.rootName == name }
+            .filter { it.interaction is ApplicationCommandInteraction && (it.interaction as ApplicationCommandInteraction).name == name }
             .onEach {
                 try {
                     if (mustBeOwner && it.interaction.user.asMemberOrNull(it.interaction.data.guildId.orElse(Snowflake(-1L)))
@@ -86,7 +73,7 @@ abstract class AbstractCommand {
                         it.interaction.respondHasNoPermission()
                         return@onEach
                     }
-                    val chain = invoke(it.interaction as CommandInteraction)
+                    val chain = invoke(it.interaction as ApplicationCommandInteraction)
                     MMBot.launch {
                         delay(15L * 60 * 1000)
                         if (chainList[it.interaction.user.id]?.id == chain?.id) {
@@ -169,7 +156,7 @@ class ConfigurationChain(private val command: AbstractCommand) {
         _list.add(ConfigurationChainElement(this).apply(builder))
     }
 
-    suspend fun start(interaction: CommandInteraction) {
+    suspend fun start(interaction: ApplicationCommandInteraction) {
         command.chainList[interaction.user.id] = this
         ephemeralResponse = interaction.respondEphemeral {
             embed(start)

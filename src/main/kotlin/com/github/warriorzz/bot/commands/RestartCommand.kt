@@ -5,7 +5,7 @@ import com.github.warriorzz.bot.config.Config
 import dev.kord.common.Color
 import dev.kord.common.annotation.KordPreview
 import dev.kord.core.behavior.interaction.respondEphemeral
-import dev.kord.core.entity.interaction.CommandInteraction
+import dev.kord.core.entity.interaction.ApplicationCommandInteraction
 import dev.kord.rest.builder.message.create.embed
 
 @OptIn(KordPreview::class)
@@ -13,7 +13,7 @@ object RestartCommand : AbstractCommand() {
     override val name: String = "restart"
     override val description: String = "Restarts the bot."
 
-    override suspend fun invoke(interaction: CommandInteraction): ConfigurationChain? {
+    override suspend fun invoke(interaction: ApplicationCommandInteraction): ConfigurationChain? {
         if (interaction.user.id != Config.OWNER_ID) {
             interaction.respondHasNoPermission()
             return null
