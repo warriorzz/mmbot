@@ -39,7 +39,7 @@ object GuildConfigurationCommand : AbstractCommand() {
                     title = "Mention"
                     description = "Please select a role"
                 }
-                startActionRowBuilder = {
+                startActionRowBuilder = listOf {
                     selectMenu("1" + this@apply.id + "-role") {
                         if (roles.size > 25) {
                             var counter = 0

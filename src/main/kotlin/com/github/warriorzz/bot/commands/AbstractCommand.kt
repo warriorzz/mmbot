@@ -261,7 +261,7 @@ class ConfigurationChain(private val command: AbstractCommand) {
         var type = InteractionType.NONE
         var start: suspend EphemeralInteractionResponseBehavior.() -> Unit = {}
         var startEmbedBuilder: (EmbedBuilder.() -> Unit)? = null
-        var startActionRowBuilder: (ActionRowBuilder.() -> Unit)? = null
+        var startActionRowBuilder: List<(ActionRowBuilder.() -> Unit)> = listOf()
 
         var validateMessage: suspend Message.() -> Boolean = { true }
         var validateButtonInteraction: suspend ButtonInteraction.() -> Boolean = { true }
@@ -276,7 +276,9 @@ class ConfigurationChain(private val command: AbstractCommand) {
             if (startEmbedBuilder != null) {
                 chain.ephemeralResponse?.edit {
                     startEmbedBuilder?.let { embed(it) }
-                    if (startActionRowBuilder != null) actionRow(startActionRowBuilder!!) else components =
+                    if (startActionRowBuilder.isNotEmpty()) startActionRowBuilder.forEach {
+                        actionRow(it)
+                    } else components =
                         mutableListOf()
                 }
             }

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import org.litote.kmongo.eq
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -74,7 +75,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     title = "Game"
                     description = "Please provide a game to play."
                 }
-                startActionRowBuilder = {
+                startActionRowBuilder = listOf {
                     selectMenu(this@apply.id) {
                         Game.values().onEach {
                             option(it.value, it.id) {}
@@ -128,34 +129,44 @@ object AppointmentCreateCommand : AbstractCommand() {
                     description =
                         "Please provide the time of the appointment. Current selected time: ${(options["time"] as Long).toDateString()}"
                 }
-                startActionRowBuilder = {
-                    interactionButton(ButtonStyle.Danger, "$id-0") {
-                        label = "- 1h"
-                    }
+                startActionRowBuilder = listOf( {
                     interactionButton(ButtonStyle.Danger, "$id-1") {
+                        label = "- 5m"
+                    }
+                    interactionButton(ButtonStyle.Danger, "$id-2") {
                         label = "- 1m"
                     }
-                    interactionButton(ButtonStyle.Success, "$id-2") {
+                    interactionButton(ButtonStyle.Success, "$id-0") {
                         emoji = Emojis.checkAnimated
                     }
                     interactionButton(ButtonStyle.Danger, "$id-3") {
                         label = "+ 1m"
                     }
                     interactionButton(ButtonStyle.Danger, "$id-4") {
+                        label = "+ 5m"
+                    }
+                }, {
+                    interactionButton(ButtonStyle.Danger, "$id-5") {
+                        label = "- 1h"
+                    }
+                    interactionButton(ButtonStyle.Danger, "$id-6") {
+                        label = "- 15m"
+                    }
+                    interactionButton(ButtonStyle.Success, "$id-0") {
+                        emoji = Emojis.checkAnimated
+                    }
+                    interactionButton(ButtonStyle.Danger, "$id-7") {
+                        label = "+ 15m"
+                    }
+                    interactionButton(ButtonStyle.Danger, "$id-8") {
                         label = "+ 1h"
                     }
-                }
+                } )
 
                 validateButtonInteraction = validateButtonInteraction@{
                     if (!this.componentId.startsWith(this@apply.id)) return@validateButtonInteraction false
                     when (this.componentId.last().digitToInt()) {
                         0 -> {
-                            options["time"] = options["time"] as Long - 60L * 60L * 1000L
-                        }
-                        1 -> {
-                            options["time"] = options["time"] as Long - 1L * 60L * 1000L
-                        }
-                        2 -> {
                             this.acknowledgePublic().delete()
                             if ((options["time"] as Long) <= System.currentTimeMillis()) {
                                 this@append.edit {
@@ -168,10 +179,28 @@ object AppointmentCreateCommand : AbstractCommand() {
                             }
                             return@validateButtonInteraction true
                         }
+                        1 -> {
+                            options["time"] = options["time"] as Long - 5L * 60L * 1000L
+                        }
+                        2 -> {
+                            options["time"] = options["time"] as Long - 1L * 60L * 1000L
+                        }
                         3 -> {
                             options["time"] = options["time"] as Long + 1L * 60L * 1000L
                         }
                         4 -> {
+                            options["time"] = options["time"] as Long + 5L * 60L * 1000L
+                        }
+                        5 -> {
+                            options["time"] = options["time"] as Long - 60L * 60L * 1000L
+                        }
+                        6 -> {
+                            options["time"] = options["time"] as Long - 15L * 60L * 1000L
+                        }
+                        7 -> {
+                            options["time"] = options["time"] as Long + 15L * 60L * 1000L
+                        }
+                        8 -> {
                             options["time"] = options["time"] as Long + 60L * 60L * 1000L
                         }
                     }
@@ -234,7 +263,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     description = "Is this match a special match?"
                 }
 
-                startActionRowBuilder = {
+                startActionRowBuilder = listOf {
                     selectMenu(this@apply.id) {
                         option("None", "no special match")
                         (this@apply.options["game"] as Game).specialChoises?.forEach { choice ->
@@ -267,7 +296,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     title = "Mention"
                     description = "Please select a role to mention."
                 }
-                startActionRowBuilder = {
+                startActionRowBuilder = listOf {
                     selectMenu(this@apply.id + "-role") {
                         if (roles.size > 25) {
                             var counter = 0
@@ -308,7 +337,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                     title = "Channel"
                     description = "Please select a channel to send the appointment message to."
                 }
-                startActionRowBuilder = {
+                startActionRowBuilder = listOf {
                     selectMenu(this@apply.id + "-channel") {
                         channels.forEach { channel ->
                             option(channel.key, channel.value.value.toString())
