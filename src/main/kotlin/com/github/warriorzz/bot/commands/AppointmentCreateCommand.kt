@@ -130,35 +130,35 @@ object AppointmentCreateCommand : AbstractCommand() {
                         "Please provide the time of the appointment. Current selected time: ${(options["time"] as Long).toDateString()}"
                 }
                 startActionRowBuilder = listOf( {
-                    interactionButton(ButtonStyle.Danger, "$id-1") {
+                    interactionButton(ButtonStyle.Danger, "$id-2") {
                         label = "- 5m"
                     }
-                    interactionButton(ButtonStyle.Danger, "$id-2") {
+                    interactionButton(ButtonStyle.Danger, "$id-3") {
                         label = "- 1m"
                     }
                     interactionButton(ButtonStyle.Success, "$id-0") {
                         emoji = Emojis.checkAnimated
                     }
-                    interactionButton(ButtonStyle.Danger, "$id-3") {
+                    interactionButton(ButtonStyle.Danger, "$id-4") {
                         label = "+ 1m"
                     }
-                    interactionButton(ButtonStyle.Danger, "$id-4") {
+                    interactionButton(ButtonStyle.Danger, "$id-5") {
                         label = "+ 5m"
                     }
                 }, {
-                    interactionButton(ButtonStyle.Danger, "$id-5") {
+                    interactionButton(ButtonStyle.Danger, "$id-6") {
                         label = "- 1h"
                     }
-                    interactionButton(ButtonStyle.Danger, "$id-6") {
+                    interactionButton(ButtonStyle.Danger, "$id-7") {
                         label = "- 15m"
                     }
-                    interactionButton(ButtonStyle.Success, "$id-0") {
+                    interactionButton(ButtonStyle.Success, "$id-1") {
                         emoji = Emojis.checkAnimated
                     }
-                    interactionButton(ButtonStyle.Danger, "$id-7") {
+                    interactionButton(ButtonStyle.Danger, "$id-8") {
                         label = "+ 15m"
                     }
-                    interactionButton(ButtonStyle.Danger, "$id-8") {
+                    interactionButton(ButtonStyle.Danger, "$id-9") {
                         label = "+ 1h"
                     }
                 } )
@@ -166,7 +166,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                 validateButtonInteraction = validateButtonInteraction@{
                     if (!this.componentId.startsWith(this@apply.id)) return@validateButtonInteraction false
                     when (this.componentId.last().digitToInt()) {
-                        0 -> {
+                        in 0..1  -> {
                             this.acknowledgePublic().delete()
                             if ((options["time"] as Long) <= System.currentTimeMillis()) {
                                 this@append.edit {
@@ -179,28 +179,28 @@ object AppointmentCreateCommand : AbstractCommand() {
                             }
                             return@validateButtonInteraction true
                         }
-                        1 -> {
+                        2 -> {
                             options["time"] = options["time"] as Long - 5L * 60L * 1000L
                         }
-                        2 -> {
+                        3 -> {
                             options["time"] = options["time"] as Long - 1L * 60L * 1000L
                         }
-                        3 -> {
+                        4 -> {
                             options["time"] = options["time"] as Long + 1L * 60L * 1000L
                         }
-                        4 -> {
+                        5 -> {
                             options["time"] = options["time"] as Long + 5L * 60L * 1000L
                         }
-                        5 -> {
+                        6 -> {
                             options["time"] = options["time"] as Long - 60L * 60L * 1000L
                         }
-                        6 -> {
+                        7 -> {
                             options["time"] = options["time"] as Long - 15L * 60L * 1000L
                         }
-                        7 -> {
+                        8 -> {
                             options["time"] = options["time"] as Long + 15L * 60L * 1000L
                         }
-                        8 -> {
+                        9 -> {
                             options["time"] = options["time"] as Long + 60L * 60L * 1000L
                         }
                     }
