@@ -22,3 +22,19 @@ jobs:
             ~/.gradle
       - name: Build with Gradle
         run: chmod +x ./gradlew && ./gradlew assemble check test
+  docker:
+    runs-on: self-hosted
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build image
+        run: docker build . -t docker.pkg.github.com/warriorzz/mmbot/mmbot:latest -t docker.pkg.github.com/warriorzz/mmbot/mmbot:"$GITHUB_SHA"
+      - name: Login ghcr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:  docker login docker.pkg.github.com --username warriorzz --password "$GITHUB_TOKEN"
+      - name: Push image to ghcr
+        run: docker push docker.pkg.github.com/warriorzz/mmbot/mmbot:latest
+      - name: Push specific tag
+        run: docker push docker.pkg.github.com/warriorzz/mmbot/mmbot:"$GITHUB_SHA"
