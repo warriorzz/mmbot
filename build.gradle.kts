@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.kord", "kord-core", "0.8.0-M4")
+    implementation("dev.kord", "kord-core", "0.8.0-M5")
     implementation("dev.kord.x", "emoji", "0.5.0")
     implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.5.1")
     implementation("org.litote.kmongo", "kmongo-coroutine-serialization", "4.2.8")

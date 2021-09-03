@@ -17,7 +17,9 @@ import dev.kord.core.entity.interaction.ButtonInteraction
 import dev.kord.core.entity.interaction.CommandInteraction
 import dev.kord.core.entity.interaction.Interaction
 import dev.kord.core.entity.interaction.SelectMenuInteraction
+import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.core.event.interaction.InteractionCreateEvent
+import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.component.ActionRowBuilder
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -55,13 +57,15 @@ abstract class AbstractCommand {
     open suspend fun register(kord: Kord) {
         this.kord = kord
         if (Config.DEV_ENVIRONMENT) {
-            kord.slashCommands.createGuildApplicationCommand(
-                Config.DEV_GUILD,
-                name,
-                description
-            ) {}
+            kord.createGuildApplicationCommands(
+                Config.DEV_GUILD
+            ) {
+                input(name, description) {}
+            }
         } else {
-            kord.slashCommands.createGlobalApplicationCommand(name, description) {}
+            kord.createGlobalApplicationCommands {
+                input(name, description) {}
+            }
         }
         kord.events.buffer(Channel.UNLIMITED).filterIsInstance<InteractionCreateEvent>()
             .filter { it.interaction is CommandInteraction && (it.interaction as CommandInteraction).command.rootName == name }
@@ -99,28 +103,26 @@ abstract class AbstractCommand {
                 }
             }.launchIn(kord)
 
-        kord.events.buffer(Channel.UNLIMITED).filterIsInstance<InteractionCreateEvent>()
-            .filter { it.interaction is ButtonInteraction }
+        kord.events.buffer(Channel.UNLIMITED).filterIsInstance<ButtonInteractionCreateEvent>()
             .onEach {
                 try {
-                    invokeButtonReaction(it.interaction as ButtonInteraction)
+                    invokeButtonReaction(it.interaction)
                     buttonInteractionChainList[Pair(
                         it.interaction.user.id,
                         it.interaction.channelId
-                    )]?.invoke(it.interaction as ButtonInteraction)
+                    )]?.invoke(it.interaction)
                 } catch (exception: Exception) {
                     exception.printStackTrace()
                 }
             }.launchIn(kord)
 
-        kord.events.buffer(Channel.UNLIMITED).filterIsInstance<InteractionCreateEvent>()
-            .filter { it.interaction is SelectMenuInteraction }
+        kord.events.buffer(Channel.UNLIMITED).filterIsInstance<SelectMenuInteractionCreateEvent>()
             .onEach {
                 try {
                     menuInteractionChainList[Pair(
                         it.interaction.user.id,
                         it.interaction.channelId
-                    )]?.invoke(it.interaction as SelectMenuInteraction)
+                    )]?.invoke(it.interaction)
                 } catch (exception: Exception) {
                     exception.printStackTrace()
                 }
