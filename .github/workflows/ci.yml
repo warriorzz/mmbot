@@ -39,4 +39,4 @@ jobs:
       - name: Push specific tag
         run: docker push docker.pkg.github.com/warriorzz/mmbot/mmbot:"$GITHUB_SHA"
       - name: Prune images
-        run: docker image prune -f
+        run: docker image prune -f -a
