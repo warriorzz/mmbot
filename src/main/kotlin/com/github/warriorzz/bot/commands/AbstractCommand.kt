@@ -84,7 +84,7 @@ abstract class AbstractCommand {
                     }
                     val chain = invoke(it.interaction as CommandInteraction)
                     MMBot.launch {
-                        delay(15 * 60 * 1000)
+                        delay(15L * 60 * 1000)
                         if (chainList[it.interaction.user.id]?.id == chain?.id) {
                             chain?.exited = true
                             val userId = it.interaction.user.id

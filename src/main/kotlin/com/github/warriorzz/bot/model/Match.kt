@@ -1,7 +1,6 @@
 package com.github.warriorzz.bot.model
 
 import com.github.warriorzz.bot.MMBot
-import com.github.warriorzz.bot.commands.toDateString
 import com.github.warriorzz.bot.commands.toTimeString
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Snowflake
@@ -9,6 +8,7 @@ import dev.kord.core.behavior.edit
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.x.emoji.Emojis
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.litote.kmongo.Id
@@ -62,7 +62,7 @@ suspend fun Match.renderMessage(): EmbedBuilder.() -> Unit {
     return {
         this.title = title
         field("${Emojis["\uD83C\uDFAE"]} Game", true) { game.value }
-        field("${Emojis.clock} Time", true) { startTime.toDateString() }
+        field("${Emojis.clock} Time", true) { Instant.fromEpochMilliseconds(startTime).toMessageFormat() }
         field(
             "${Emojis.firstPlaceMedal} Special Match",
             true
@@ -195,3 +195,5 @@ enum class Game(val id: String, val value: String, val thumbnailUrl: String, val
 
     fun fromId(string: String) = values().first { it.id == string.trim() }
 }
+
+fun Instant.toMessageFormat() = "<t:$epochSeconds:R>"
