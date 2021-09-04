@@ -46,7 +46,6 @@ object MMBot : CoroutineScope {
         AppointmentCreateCommand.register(kord)
         RedeployCommand.register(kord)
         RestartCommand.register(kord)
-        
         kord.globalCommands.onEach { it.delete() }
         kord.guilds.onEach { it.commands.onEach { it.delete() } }
 

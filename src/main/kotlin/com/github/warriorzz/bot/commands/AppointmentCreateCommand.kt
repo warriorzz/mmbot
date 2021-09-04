@@ -408,7 +408,7 @@ object AppointmentCreateCommand : AbstractCommand() {
 
                     val message = (MMBot.kord.getGuild(interaction.data.guildId.value!!)
                         ?.getChannel(Snowflake(channelId)) as TextChannel).createMessage {
-                        content = "<@&$roleId>"
+                        content = if (roleId == -1L) "@all" else "<@&$roleId>"
                         embed(match.renderMessage())
                         actionRow {
                             interactionButton(ButtonStyle.Primary, "add-$id") {
