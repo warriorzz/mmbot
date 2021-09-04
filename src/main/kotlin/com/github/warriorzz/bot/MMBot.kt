@@ -20,6 +20,7 @@ import dev.kord.core.on
 import dev.kord.x.emoji.Emojis
 import io.ktor.client.engine.cio.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.onEach
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
@@ -45,6 +46,9 @@ object MMBot : CoroutineScope {
         AppointmentCreateCommand.register(kord)
         RedeployCommand.register(kord)
         RestartCommand.register(kord)
+        
+        kord.globalCommands.onEach { it.delete() }
+        kord.guilds.onEach { it.commands.onEach { it.delete() } }
 
         if (Config.DEV_ENVIRONMENT) {
             kord.createGuildApplicationCommands(
