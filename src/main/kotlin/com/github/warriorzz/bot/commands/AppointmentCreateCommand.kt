@@ -339,7 +339,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                         options["role"] = role
                         this@append.edit(true) {
                             title = "Success!"
-                            description = "${Emojis.checkAnimated.asTextEmoji()} <@&$role> will be mentioned!"
+                            description = "${Emojis.checkAnimated.asTextEmoji()} ${if (role != -1L) "<@&$role>" else "No role"} will be mentioned!"
                             color = Color(0, 255, 0)
                         }
                     }
