@@ -131,13 +131,7 @@ abstract class AbstractCommand {
                         )
                     }
                 } catch (exception: Exception) {
-                    println("")
-                    println("MESSAGE BLOCK")
-                    println("")
                     exception.printStackTrace()
-                    println("")
-                    println("MESSAGE BLOCK")
-                    println("")
                 }
             }.launchIn(kord)
     }
@@ -151,12 +145,14 @@ class ConfigurationChain(private val command: AbstractCommand) {
     private var ephemeralResponse: EphemeralInteractionResponseBehavior? = null
     var start: EmbedBuilder.() -> Unit = {}
     internal var exited = false
+    var channelId: Long = -1L
 
     fun append(builder: ConfigurationChainElement.() -> Unit) {
         _list.add(ConfigurationChainElement(this).apply(builder))
     }
 
     suspend fun start(interaction: ApplicationCommandInteraction) {
+        channelId = interaction.data.channelId.value
         command.chainList[interaction.user.id] = this
         ephemeralResponse = interaction.respondEphemeral {
             embed(start)

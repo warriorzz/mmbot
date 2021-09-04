@@ -34,9 +34,7 @@ data class Match(
 
 @OptIn(KordPreview::class)
 suspend fun Match.start() {
-    println("Match $name is starting")
     for (it in players) {
-        println(it)
         MMBot.kord.getUser(it)?.asMember(guild!!)?.getDmChannel()
             ?.createMessage("${Emojis.clock} Your match \"$name\" starts now!")
     }

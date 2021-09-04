@@ -22,9 +22,9 @@ import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.embed
 import dev.kord.x.emoji.Emojis
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import org.litote.kmongo.eq
@@ -43,7 +43,7 @@ object AppointmentCreateCommand : AbstractCommand() {
         val guildConfiguration =
             MMBot.Database.collections.guildConfigurations.findOne(GuildConfiguration::guildId eq interaction.data.guildId.asOptional.value)
         if (!interaction.user.asMember(interaction.data.guildId.value ?: Snowflake(-1)).roleIds.contains(
-                guildConfiguration?.role
+                guildConfiguration?.appointmentRole
             )
         ) {
             interaction.respondEphemeral {
@@ -53,15 +53,19 @@ object AppointmentCreateCommand : AbstractCommand() {
             }
             return null
         }
-        val roles = HashMap<String, Snowflake>()
-        MMBot.kord.getGuild(interaction.data.guildId.value!!)?.roles?.map {
-            it.name to it.id
-        }?.collect { roles[it.first] = it.second }
 
-        val channels = HashMap<String, Snowflake>()
-        MMBot.kord.getGuild(interaction.data.guildId.value!!)?.channels?.filterIsInstance<TextChannel>()?.map {
-            it.name to it.id
-        }?.collect { channels[it.first] = it.second }
+        val roles =
+            MMBot.Database.collections.guildConfigurations.findOne(GuildConfiguration::guildId eq interaction.data.guildId.value)?.mentionableRoles
+                ?: MMBot.kord.getGuild(interaction.data.guildId.value!!)?.roles?.map {
+                    it.name to it.id
+                }?.toList(mutableListOf())?.associate { it.first to it.second } as Map<String, Snowflake>
+
+        val channels =
+            MMBot.Database.collections.guildConfigurations.findOne(GuildConfiguration::guildId eq interaction.data.guildId.value)?.mentionableChannels
+                ?: MMBot.kord.getGuild(interaction.data.guildId.value!!)?.channels?.filterIsInstance<TextChannel>()
+                    ?.map {
+                        it.name to it.id
+                    }?.toList(mutableListOf())?.associate { it.first to it.second } as Map<String, Snowflake>
 
         val chain = ConfigurationChain(this).apply {
             start = {
@@ -128,7 +132,11 @@ object AppointmentCreateCommand : AbstractCommand() {
                     options["time"] = LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0))?.epochSecond
                         ?: System.currentTimeMillis()
                     description =
-                        "Please provide the time of the appointment. Current selected time: ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)}"
+                        "Please provide the time of the appointment. Current selected time: ${
+                            Instant.fromEpochSeconds(
+                                options["time"] as Long
+                            ).toMessageFormat(DiscordTimestampStyle.ShortDateTime)
+                        }"
                 }
                 startActionRowBuilder = listOf({
                     interactionButton(ButtonStyle.Danger, "$id-2") {
@@ -167,13 +175,18 @@ object AppointmentCreateCommand : AbstractCommand() {
                 validateButtonInteraction = validateButtonInteraction@{
                     if (!this.componentId.startsWith(this@apply.id)) return@validateButtonInteraction false
                     when (this.componentId.last().digitToInt()) {
-                        in 0..1  -> {
+                        in 0..1 -> {
                             this.acknowledgePublic().delete()
-                            if ((options["time"] as Long) <= LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0)).epochSecond) {
+                            if ((options["time"] as Long) <= LocalDateTime.now(Clock.systemUTC())
+                                    .toInstant(ZoneOffset.ofHours(0)).epochSecond
+                            ) {
                                 this@append.edit {
                                     title = "Error!"
                                     description =
-                                        "${Emojis.crossAnimated.asTextEmoji()} ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)} is too early!"
+                                        "${Emojis.crossAnimated.asTextEmoji()} ${
+                                            Instant.fromEpochSeconds(options["time"] as Long)
+                                                .toMessageFormat(DiscordTimestampStyle.ShortDateTime)
+                                        } is too early!"
                                     color = Color(255, 0, 0)
                                 }
                                 return@validateButtonInteraction false
@@ -205,12 +218,15 @@ object AppointmentCreateCommand : AbstractCommand() {
                             options["time"] = options["time"] as Long + 60L * 60L
                         }
                     }
+                    this.acknowledgePublic().delete()
                     this@append.edit {
                         title = "Time"
-                        description = "Current selected time: ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)}"
+                        description = "Current selected time: ${
+                            Instant.fromEpochSeconds(options["time"] as Long)
+                                .toMessageFormat(DiscordTimestampStyle.ShortDateTime)
+                        }"
                         color = Color(120, 120, 120)
                     }
-                    this.acknowledgePublic().delete()
                     false
                 }
 
@@ -218,7 +234,10 @@ object AppointmentCreateCommand : AbstractCommand() {
                     this@append.edit(true) {
                         title = "Success!"
                         description =
-                            "${Emojis.checkAnimated.asTextEmoji()} ${Instant.fromEpochSeconds(options["time"] as Long).toMessageFormat(DiscordTimestampStyle.ShortDateTime)} was selected!"
+                            "${Emojis.checkAnimated.asTextEmoji()} ${
+                                Instant.fromEpochSeconds(options["time"] as Long)
+                                    .toMessageFormat(DiscordTimestampStyle.ShortDateTime)
+                            } was selected!"
                         color = Color(0, 255, 0)
                     }
                 }
@@ -299,17 +318,12 @@ object AppointmentCreateCommand : AbstractCommand() {
                 }
                 startActionRowBuilder = listOf {
                     selectMenu(this@apply.id + "-role") {
-                        if (roles.size > 25) {
-                            var counter = 0
-                            roles.map { it.key to it.value }.shuffled().forEach {
-                                if (counter == 25) return@forEach
-                                option(it.first, it.second.value.toString())
-                                counter++
-                            }
-                        } else {
-                            roles.forEach { role ->
-                                option(role.key, role.value.value.toString())
-                            }
+                        option("none", "-1")
+                        var counter = 0
+                        roles.forEach {
+                            if (counter == 25) return@forEach
+                            option(it.key, it.value.value.toString())
+                            counter++
                         }
                     }
                 }
@@ -340,6 +354,7 @@ object AppointmentCreateCommand : AbstractCommand() {
                 }
                 startActionRowBuilder = listOf {
                     selectMenu(this@apply.id + "-channel") {
+                        if (!channels.values.contains(Snowflake(this@apply.channelId))) option("This channel", "${this@apply.channelId}")
                         channels.forEach { channel ->
                             option(channel.key, channel.value.value.toString())
                         }
@@ -426,7 +441,10 @@ object AppointmentCreateCommand : AbstractCommand() {
                         )
                     )
                     MMBot.launch {
-                        delay(match.startTime * 1000 - LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000)
+                        delay(
+                            match.startTime * 1000 - LocalDateTime.now(Clock.systemUTC())
+                                .toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000
+                        )
                         MMBot.Database.collections.matches.findOneById(match._id)?.start()
                     }
                 }

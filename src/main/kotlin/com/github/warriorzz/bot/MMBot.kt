@@ -50,7 +50,6 @@ object MMBot : CoroutineScope {
             kord.createGuildApplicationCommands(
                 Config.DEV_GUILD
             ) {
-                println("registering")
                 commandList.forEach {
                     input(it.key, it.value) {}
                 }
