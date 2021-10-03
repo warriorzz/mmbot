@@ -1,3 +1,5 @@
+version: "3.7"
+
 services:
   backend:
     build: .
@@ -9,12 +11,17 @@ services:
       - DISCORD_TOKEN=ODc0NzQwMDMzODM4NTE4Mzcy.YRLXIw.a8aiIJOr26rwYBjZ3XIyX-c2Di0
       - DATABASE_CONNECTION_STRING=mongodb://root:root@mongo
       - DATABASE_NAME=database
-      - DEV_ENVIRONMENT=true
+      - DEV_ENVIRONMENT=false
       - DEV_GUILD=741433204086669413
       - DOCKY_URL=http://docky:3000
       - TZ=Europe/London
+      - MUSIC_CLIENT_ID=24ccf725d8fd4b5a92822ca01c298b57
+      - MUSIC_CLIENT_SECRET=c8059112176e4eb4abe25cae776a9470
+      - MUSIC_REDIRECT_URI=http://localhost/join
     networks:
       - app
+    ports:
+      - "80:80"
   mongo:
     image: mongo
     container_name: mmbot_database
@@ -25,16 +32,7 @@ services:
     volumes:
       - mmbot:/data/db
     ports:
-      - 27017:27017
-    networks:
-      - app
-  docky:
-    image: nycode/docky
-    container_name: docky
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    ports:
-      - 8080:3000
+      - "27017:27017"
     networks:
       - app
 networks:

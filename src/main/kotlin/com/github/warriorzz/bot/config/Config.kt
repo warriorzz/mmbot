@@ -17,4 +17,8 @@ object Config {
 
     val MESSAGE_TIMEOUT by getEnv(default = 1500) { it.toLong() }
     val BENCH_SIZE by getEnv(default = 2) { it.toInt() }
+
+    val MUSIC_CLIENT_ID by environment
+    val MUSIC_CLIENT_SECRET by environment
+    val MUSIC_REDIRECT_URI by environment
 }

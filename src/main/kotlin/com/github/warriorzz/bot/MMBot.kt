@@ -4,10 +4,14 @@ import com.github.warriorzz.bot.commands.AppointmentCreateCommand
 import com.github.warriorzz.bot.commands.GuildConfigurationCommand
 import com.github.warriorzz.bot.commands.RedeployCommand
 import com.github.warriorzz.bot.commands.RestartCommand
+import com.github.warriorzz.bot.commands.music.MusicCreateCommand
+import com.github.warriorzz.bot.commands.music.MusicFollowupCommands
+import com.github.warriorzz.bot.commands.music.MusicQueueCommand
 import com.github.warriorzz.bot.config.Config
 import com.github.warriorzz.bot.model.GuildConfiguration
 import com.github.warriorzz.bot.model.Match
 import com.github.warriorzz.bot.model.start
+import com.github.warriorzz.bot.music.MusicManager
 import de.nycode.docky.client.DockyClient
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.DiscordPartialEmoji
@@ -17,6 +21,7 @@ import dev.kord.common.entity.optional.OptionalBoolean
 import dev.kord.core.Kord
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.on
+import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.x.emoji.Emojis
 import io.ktor.client.engine.cio.*
 import kotlinx.coroutines.*
@@ -35,32 +40,37 @@ object MMBot : CoroutineScope {
 
     internal lateinit var kord: Kord
     private val dockyClient = DockyClient(CIO, Config.DOCKY_URL)
-    internal val commandList: MutableMap<String, String> = mutableMapOf()
+    internal val commandList: MutableMap<Pair<String, String>, ChatInputCreateBuilder.() -> Unit> = mutableMapOf()
 
     @OptIn(KordPreview::class)
     suspend operator fun invoke() {
         Database()
         kord = Kord(Config.DISCORD_TOKEN)
+        MusicManager(kord)
 
         GuildConfigurationCommand.register(kord)
         AppointmentCreateCommand.register(kord)
         RedeployCommand.register(kord)
         RestartCommand.register(kord)
+        MusicCreateCommand.register(kord)
+        MusicQueueCommand.register(kord)
+        MusicFollowupCommands.register(kord)
+
         kord.globalCommands.onEach { it.delete() }
-        kord.guilds.onEach { it.commands.onEach { it.delete() } }
+        kord.guilds.onEach { guild -> guild.commands.onEach { it.delete() } }
 
         if (Config.DEV_ENVIRONMENT) {
             kord.createGuildApplicationCommands(
                 Config.DEV_GUILD
             ) {
                 commandList.forEach {
-                    input(it.key, it.value) {}
+                    input(it.key.first, it.key.second, it.value)
                 }
             }
         } else {
             kord.createGlobalApplicationCommands {
                 commandList.forEach {
-                    input(it.key, it.value) {}
+                    input(it.key.first, it.key.second, it.value)
                 }
             }
         }

@@ -23,7 +23,15 @@ dependencies {
     implementation("org.slf4j", "slf4j-simple", "1.7.31")
 
     implementation("de.nycode", "docky-kotlin-client", "1.0.6")
-    implementation("io.ktor", "ktor-client-cio", "1.6.2")
+
+    implementation(platform("io.ktor:ktor-bom:1.6.2"))
+    implementation("io.ktor", "ktor-client-cio")
+    implementation("io.ktor", "ktor-server-core")
+    implementation("io.ktor", "ktor-server-cio")
+    implementation("io.ktor", "ktor-html-builder")
+    implementation("io.ktor", "ktor-freemarker")
+
+    implementation("io.github.warriorzz", "ktify", "0.1")
 }
 
 application {
