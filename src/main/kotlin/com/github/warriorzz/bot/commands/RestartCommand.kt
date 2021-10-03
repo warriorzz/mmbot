@@ -1,7 +1,9 @@
 package com.github.warriorzz.bot.commands
 
 import com.github.warriorzz.bot.MMBot
+import com.github.warriorzz.bot.commands.configuration.ConfigurationChain
 import com.github.warriorzz.bot.config.Config
+import com.github.warriorzz.bot.extension.respondHasNoPermission
 import dev.kord.common.Color
 import dev.kord.common.annotation.KordPreview
 import dev.kord.core.behavior.interaction.respondEphemeral

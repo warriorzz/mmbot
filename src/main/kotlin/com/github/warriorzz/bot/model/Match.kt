@@ -1,7 +1,7 @@
 package com.github.warriorzz.bot.model
 
 import com.github.warriorzz.bot.MMBot
-import com.github.warriorzz.bot.commands.toTimeString
+import com.github.warriorzz.bot.extension.toTimeString
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.edit

@@ -3,6 +3,7 @@ package com.github.warriorzz.bot.commands
 import com.github.warriorzz.bot.MMBot
 import com.github.warriorzz.bot.asTextEmoji
 import com.github.warriorzz.bot.checkAnimated
+import com.github.warriorzz.bot.commands.configuration.ConfigurationChain
 import com.github.warriorzz.bot.config.Config
 import com.github.warriorzz.bot.crossAnimated
 import com.github.warriorzz.bot.model.*
@@ -26,7 +27,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
 import org.litote.kmongo.eq
 import java.time.Clock
 import java.time.LocalDateTime
@@ -74,379 +74,143 @@ object AppointmentCreateCommand : AbstractCommand() {
                 color = Color(0, 0, 255)
             }
 
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.MENU
-                startEmbedBuilder = {
-                    title = "Game"
-                    description = "Please provide a game to play."
-                }
-                startActionRowBuilder = listOf {
-                    selectMenu(this@apply.id) {
-                        Game.values().onEach {
-                            option(it.value, it.id) {}
-                        }
+            menu {
+                title = "Game"
+                description = "Please provide a game to play."
+                key = "game"
+                choices = {
+                    val map = mutableMapOf<String, String>()
+                    Game.values().onEach {
+                        map[it.value] = it.id
                     }
-                }
-
-                validateMenuInteraction = {
-                    this.componentId == this@apply.id
-                }
-
-                executeMenuInteraction = {
-                    if (this.componentId == this@apply.id) {
-                        this.acknowledgePublic().delete()
-                        val game = Game.AMONG_US.fromId(this.values.first())
-                        options["game"] = game
-                        this@append.edit(true) {
-                            title = "Success!"
-                            description = "${Emojis.checkAnimated.asTextEmoji()} ${game.value} will be played!"
-                            color = Color(0, 255, 0)
-                        }
-                    }
+                    map
                 }
             }
 
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.MESSAGE
-                startEmbedBuilder = {
-                    title = "Title"
-                    description = "Please provide a title for the appointment."
-                }
+            string {
+                title = "Title"
+                description = "Please provide a title for the appointment."
+                key = "title"
+            }
 
-                executeMessage = {
-                    options["title"] = this.content
-                    val message = this
-                    this@append.edit {
-                        title = "Success!"
-                        description =
-                            "${Emojis.checkAnimated.asTextEmoji()} \"${message.content}\" was accepted as title."
-                        color = Color(0, 255, 0)
+            timestamp {
+                title = "Time"
+                description = "Please provide the time of the appointment. Current selected time: %TIME%"
+                editedDescription = "Current selected time: %TIME%"
+                errorDescription = "Error! %TIME% is too early!"
+                key = "time"
+            }
+
+            int {
+                title = "Players"
+                description = "Please provide the amount of required players for the appointment."
+                key = "players"
+            }
+
+            menu {
+                title = "Special Match"
+                description = "Is this match a special match?"
+                key = "special"
+                choices = {
+                    val map = mutableMapOf("None" to "no special match")
+                    Game.AMONG_US.fromId(this@apply.options["game"] as String).specialChoises?.forEach { choice ->
+                        map[choice] = choice
                     }
+                    map
                 }
             }
 
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.BUTTON
-                startEmbedBuilder = {
-                    title = "Time"
-                    options["time"] = LocalDateTime.now(Clock.systemUTC()).toInstant(ZoneOffset.ofHours(0))?.epochSecond
-                        ?: System.currentTimeMillis()
-                    description =
-                        "Please provide the time of the appointment. Current selected time: ${
-                            Instant.fromEpochSeconds(
-                                options["time"] as Long
-                            ).toMessageFormat(DiscordTimestampStyle.ShortDateTime)
-                        }"
-                }
-                startActionRowBuilder = listOf({
-                    interactionButton(ButtonStyle.Danger, "$id-2") {
-                        label = "- 5m"
-                    }
-                    interactionButton(ButtonStyle.Danger, "$id-3") {
-                        label = "- 1m"
-                    }
-                    interactionButton(ButtonStyle.Success, "$id-0") {
-                        emoji = Emojis.checkAnimated
-                    }
-                    interactionButton(ButtonStyle.Danger, "$id-4") {
-                        label = "+ 1m"
-                    }
-                    interactionButton(ButtonStyle.Danger, "$id-5") {
-                        label = "+ 5m"
-                    }
-                }, {
-                    interactionButton(ButtonStyle.Danger, "$id-6") {
-                        label = "- 1h"
-                    }
-                    interactionButton(ButtonStyle.Danger, "$id-7") {
-                        label = "- 15m"
-                    }
-                    interactionButton(ButtonStyle.Success, "$id-1") {
-                        emoji = Emojis.checkAnimated
-                    }
-                    interactionButton(ButtonStyle.Danger, "$id-8") {
-                        label = "+ 15m"
-                    }
-                    interactionButton(ButtonStyle.Danger, "$id-9") {
-                        label = "+ 1h"
-                    }
-                })
-
-                validateButtonInteraction = validateButtonInteraction@{
-                    if (!this.componentId.startsWith(this@apply.id)) return@validateButtonInteraction false
-                    when (this.componentId.last().digitToInt()) {
-                        in 0..1 -> {
-                            this.acknowledgePublic().delete()
-                            if ((options["time"] as Long) <= LocalDateTime.now(Clock.systemUTC())
-                                    .toInstant(ZoneOffset.ofHours(0)).epochSecond
-                            ) {
-                                this@append.edit {
-                                    title = "Error!"
-                                    description =
-                                        "${Emojis.crossAnimated.asTextEmoji()} ${
-                                            Instant.fromEpochSeconds(options["time"] as Long)
-                                                .toMessageFormat(DiscordTimestampStyle.ShortDateTime)
-                                        } is too early!"
-                                    color = Color(255, 0, 0)
-                                }
-                                return@validateButtonInteraction false
-                            }
-                            return@validateButtonInteraction true
-                        }
-                        2 -> {
-                            options["time"] = options["time"] as Long - 5L * 60L
-                        }
-                        3 -> {
-                            options["time"] = options["time"] as Long - 1L * 60L
-                        }
-                        4 -> {
-                            options["time"] = options["time"] as Long + 1L * 60L
-                        }
-                        5 -> {
-                            options["time"] = options["time"] as Long + 5L * 60L
-                        }
-                        6 -> {
-                            options["time"] = options["time"] as Long - 60L * 60L
-                        }
-                        7 -> {
-                            options["time"] = options["time"] as Long - 15L * 60L
-                        }
-                        8 -> {
-                            options["time"] = options["time"] as Long + 15L * 60L
-                        }
-                        9 -> {
-                            options["time"] = options["time"] as Long + 60L * 60L
-                        }
-                    }
-                    this.acknowledgePublic().delete()
-                    this@append.edit {
-                        title = "Time"
-                        description = "Current selected time: ${
-                            Instant.fromEpochSeconds(options["time"] as Long)
-                                .toMessageFormat(DiscordTimestampStyle.ShortDateTime)
-                        }"
-                        color = Color(120, 120, 120)
-                    }
-                    false
-                }
-
-                executeButtonInteraction = {
-                    this@append.edit(true) {
-                        title = "Success!"
-                        description =
-                            "${Emojis.checkAnimated.asTextEmoji()} ${
-                                Instant.fromEpochSeconds(options["time"] as Long)
-                                    .toMessageFormat(DiscordTimestampStyle.ShortDateTime)
-                            } was selected!"
-                        color = Color(0, 255, 0)
-                    }
+            role {
+                title = "Mention"
+                description = "Please select a role to mention."
+                key = "role"
+                choices = {
+                    roles.map { it.key to it.value.toString() }.shuffled().subList(0, 24).toMap().toMutableMap()
                 }
             }
 
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.MESSAGE
-                startEmbedBuilder = {
-                    title = "Players"
-                    description = "Please provide the amount of required players for the appointment."
-                }
-
-                validateMessage = {
-                    val matches = this.content.matches("\\d*".toRegex()) && (this.content.toIntOrNull() ?: -1) > 0
-                    val message = this
-                    if (!matches) {
-                        this@append.edit {
-                            title = "Error!"
-                            description =
-                                "${Emojis.crossAnimated.asTextEmoji()} \"${message.content}\" is not a valid amount!"
-                            color = Color(255, 0, 0)
-                        }
+            channel {
+                title = "Channel"
+                description = "Please select a channel to send the appointment message to."
+                key = "channel"
+                choices = {
+                    val map = mutableMapOf<String, String>()
+                    var counter = 0
+                    channels.forEach {
+                        if (counter == 26) return@forEach
+                        map[it.key] = it.value.value.toString()
+                        counter++
                     }
-                    matches
-                }
-
-                executeMessage = {
-                    options["players"] = this.content.toInt()
-                    val message = this
-                    this@append.edit {
-                        title = "Success!"
-                        description =
-                            "${Emojis.checkAnimated.asTextEmoji()} ${message.content} players will be counted in!"
-                        color = Color(0, 255, 0)
-                    }
+                    map
                 }
             }
 
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.MENU
-                startEmbedBuilder = {
-                    title = "Special Match"
-                    description = "Is this match a special match?"
-                }
+            message {
+                val date = options["time"] as Long
+                val game = Game.APEX_LEGENDS.fromId(options["game"] as String)
 
-                startActionRowBuilder = listOf {
-                    selectMenu(this@apply.id) {
-                        option("None", "no special match")
-                        (this@apply.options["game"] as Game).specialChoises?.forEach { choice ->
-                            option(choice, choice)
+                val specialMatch = options["special"] as String
+                val players = options["players"] as Int
+                val title = options["title"] as String
+                val roleId = options["role"] as Long
+                val channelId = options["channel"] as Long
+
+                val match = Match(
+                    requiredPlayers = players,
+                    players = mutableListOf(),
+                    startTime = date,
+                    name = title,
+                    specialMatch = specialMatch,
+                    game = game,
+                    guild = interaction.data.guildId.value,
+                    channel = Snowflake(channelId),
+                    message = null,
+                    chainId = this@apply.id,
+                    creator = interaction.user.id,
+                    createdStamp = System.currentTimeMillis()
+                )
+                MMBot.Database.collections.matches.insertOne(match)
+
+                val message = (MMBot.kord.getGuild(interaction.data.guildId.value!!)
+                    ?.getChannel(Snowflake(channelId)) as TextChannel).createMessage {
+                    content = if (roleId == -1L) "@all" else "<@&$roleId>"
+                    embed(match.renderMessage())
+                    actionRow {
+                        interactionButton(ButtonStyle.Primary, "add-$id") {
+                            label = "Join"
+                        }
+                        interactionButton(ButtonStyle.Primary, "rem-$id") {
+                            label = "Leave"
+                        }
+                        interactionButton(ButtonStyle.Danger, "can-$id") {
+                            label = "Cancel"
                         }
                     }
                 }
-
-                validateMenuInteraction = {
-                    this.componentId == this@apply.id
-                }
-
-                executeMenuInteraction = {
-                    if (this.componentId == this@apply.id) {
-                        this.acknowledgePublic().delete()
-                        val specialMatch = this.values.first()
-                        options["special"] = specialMatch
-                        this@append.edit(true) {
-                            title = "Success!"
-                            description = "${Emojis.checkAnimated.asTextEmoji()} This game will be $specialMatch."
-                            color = Color(0, 255, 0)
-                        }
-                    }
-                }
-            }
-
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.MENU
-                startEmbedBuilder = {
-                    title = "Mention"
-                    description = "Please select a role to mention."
-                }
-                startActionRowBuilder = listOf {
-                    selectMenu(this@apply.id + "-role") {
-                        option("none", "-1")
-                        var counter = 0
-                        roles.forEach {
-                            if (counter == 25) return@forEach
-                            option(it.key, it.value.value.toString())
-                            counter++
-                        }
-                    }
-                }
-
-                validateMenuInteraction = {
-                    this.componentId == this@apply.id + "-role"
-                }
-
-                executeMenuInteraction = {
-                    if (this.componentId == this@apply.id + "-role") {
-                        this.acknowledgePublic().delete()
-                        val role = this.values.first().toLong()
-                        options["role"] = role
-                        this@append.edit(true) {
-                            title = "Success!"
-                            description = "${Emojis.checkAnimated.asTextEmoji()} ${if (role != -1L) "<@&$role>" else "No role"} will be mentioned!"
-                            color = Color(0, 255, 0)
-                        }
-                    }
-                }
-            }
-
-            append {
-                type = ConfigurationChain.ConfigurationChainElement.InteractionType.MENU
-                startEmbedBuilder = {
-                    title = "Channel"
-                    description = "Please select a channel to send the appointment message to."
-                }
-                startActionRowBuilder = listOf {
-                    selectMenu(this@apply.id + "-channel") {
-                        if (!channels.values.contains(Snowflake(this@apply.channelId))) option("This channel", "${this@apply.channelId}")
-                        channels.forEach { channel ->
-                            option(channel.key, channel.value.value.toString())
-                        }
-                    }
-                }
-
-                validateMenuInteraction = {
-                    this.componentId == this@apply.id + "-channel"
-                }
-
-                executeMenuInteraction = {
-                    if (this.componentId == this@apply.id + "-channel") {
-                        this.acknowledgePublic().delete()
-                        val channel = this.values.first().toLong()
-                        options["channel"] = channel
-                        this@append.edit(true) {
-                            title = "Success!"
-                            description = "${Emojis.checkAnimated.asTextEmoji()} <#$channel> will be mentioned!"
-                            color = Color(0, 255, 0)
-                        }
-                    }
-                }
-            }
-
-            append {
-                start = {
-                    val date = options["time"] as Long
-                    val game = options["game"] as Game
-
-                    val specialMatch = options["special"] as String
-                    val players = options["players"] as Int
-                    val title = options["title"] as String
-                    val roleId = options["role"] as Long
-                    val channelId = options["channel"] as Long
-
-                    val match = Match(
-                        requiredPlayers = players,
-                        players = mutableListOf(),
-                        startTime = date,
-                        name = title,
-                        specialMatch = specialMatch,
-                        game = game,
-                        guild = interaction.data.guildId.value,
-                        channel = Snowflake(channelId),
-                        message = null,
-                        chainId = this@apply.id,
-                        creator = interaction.user.id,
-                        createdStamp = System.currentTimeMillis()
+                MMBot.Database.collections.matches.updateOne(
+                    Match::_id eq match._id,
+                    Match(
+                        match._id,
+                        match.requiredPlayers,
+                        match.players,
+                        match.startTime,
+                        match.name,
+                        match.specialMatch,
+                        match.game,
+                        match.guild,
+                        match.channel,
+                        message.id,
+                        match.chainId,
+                        match.creator,
+                        match.createdStamp
                     )
-                    MMBot.Database.collections.matches.insertOne(match)
-
-                    val message = (MMBot.kord.getGuild(interaction.data.guildId.value!!)
-                        ?.getChannel(Snowflake(channelId)) as TextChannel).createMessage {
-                        content = if (roleId == -1L) "@all" else "<@&$roleId>"
-                        embed(match.renderMessage())
-                        actionRow {
-                            interactionButton(ButtonStyle.Primary, "add-$id") {
-                                label = "Join"
-                            }
-                            interactionButton(ButtonStyle.Primary, "rem-$id") {
-                                label = "Leave"
-                            }
-                            interactionButton(ButtonStyle.Danger, "can-$id") {
-                                label = "Cancel"
-                            }
-                        }
-                    }
-                    MMBot.Database.collections.matches.updateOne(
-                        Match::_id eq match._id,
-                        Match(
-                            match._id,
-                            match.requiredPlayers,
-                            match.players,
-                            match.startTime,
-                            match.name,
-                            match.specialMatch,
-                            match.game,
-                            match.guild,
-                            match.channel,
-                            message.id,
-                            match.chainId,
-                            match.creator,
-                            match.createdStamp
-                        )
+                )
+                MMBot.launch {
+                    delay(
+                        match.startTime * 1000 - LocalDateTime.now(Clock.systemUTC())
+                            .toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000
                     )
-                    MMBot.launch {
-                        delay(
-                            match.startTime * 1000 - LocalDateTime.now(Clock.systemUTC())
-                                .toInstant(ZoneOffset.ofHours(0)).epochSecond * 1000
-                        )
-                        MMBot.Database.collections.matches.findOneById(match._id)?.start()
-                    }
+                    MMBot.Database.collections.matches.findOneById(match._id)?.start()
                 }
             }
         }

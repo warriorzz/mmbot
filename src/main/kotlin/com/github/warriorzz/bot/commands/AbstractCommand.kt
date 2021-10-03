@@ -1,38 +1,24 @@
 package com.github.warriorzz.bot.commands
 
 import com.github.warriorzz.bot.MMBot
-import com.github.warriorzz.bot.asTextEmoji
-import com.github.warriorzz.bot.checkAnimated
-import com.github.warriorzz.bot.config.Config
-import dev.kord.common.Color
+import com.github.warriorzz.bot.commands.configuration.ConfigurationChain
+import com.github.warriorzz.bot.extension.respondHasNoPermission
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.interaction.EphemeralInteractionResponseBehavior
-import dev.kord.core.behavior.interaction.edit
-import dev.kord.core.behavior.interaction.respondEphemeral
-import dev.kord.core.entity.Message
-import dev.kord.core.entity.interaction.*
+import dev.kord.core.entity.interaction.ApplicationCommandInteraction
+import dev.kord.core.entity.interaction.ButtonInteraction
+import dev.kord.core.entity.interaction.SelectMenuInteraction
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.core.event.interaction.InteractionCreateEvent
 import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.component.ActionRowBuilder
-import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.embed
-import dev.kord.rest.builder.message.modify.actionRow
-import dev.kord.rest.builder.message.modify.embed
-import dev.kord.x.emoji.Emojis
+import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toJavaLocalDateTime
-import kotlinx.datetime.toLocalDateTime
-import java.time.format.DateTimeFormatter
 
 @KordPreview
 abstract class AbstractCommand {
@@ -41,6 +27,7 @@ abstract class AbstractCommand {
     protected open var mustBeOwner: Boolean = false
     protected open var permission: Permission? = null
     protected open var buttonPrefix: String = ""
+    protected open var commandBuilder: ChatInputCreateBuilder.() -> Unit = {}
     val messageInteractionChainList = HashMap<Pair<Snowflake, Snowflake>, (suspend MessageCreateEvent.() -> Unit)?>()
     val buttonInteractionChainList = HashMap<Pair<Snowflake, Snowflake>, (suspend ButtonInteraction.() -> Unit)?>()
     val menuInteractionChainList = HashMap<Pair<Snowflake, Snowflake>, (suspend SelectMenuInteraction.() -> Unit)?>()
@@ -53,7 +40,7 @@ abstract class AbstractCommand {
 
     open suspend fun register(kord: Kord) {
         this.kord = kord
-        MMBot.commandList[name] = description
+        MMBot.commandList[name to description] = commandBuilder
         kord.events.buffer(Channel.UNLIMITED).filterIsInstance<InteractionCreateEvent>()
             .filter { it.interaction is ApplicationCommandInteraction && (it.interaction as ApplicationCommandInteraction).name == name }
             .onEach {
@@ -135,186 +122,4 @@ abstract class AbstractCommand {
                 }
             }.launchIn(kord)
     }
-}
-
-@KordPreview
-class ConfigurationChain(private val command: AbstractCommand) {
-    private val _list = ArrayList<ConfigurationChainElement>()
-    val options = HashMap<String, Any>()
-    val id = randomString()
-    private var ephemeralResponse: EphemeralInteractionResponseBehavior? = null
-    var start: EmbedBuilder.() -> Unit = {}
-    internal var exited = false
-    var channelId: Long = -1L
-
-    fun append(builder: ConfigurationChainElement.() -> Unit) {
-        _list.add(ConfigurationChainElement(this).apply(builder))
-    }
-
-    suspend fun start(interaction: ApplicationCommandInteraction) {
-        channelId = interaction.data.channelId.value
-        command.chainList[interaction.user.id] = this
-        ephemeralResponse = interaction.respondEphemeral {
-            embed(start)
-        }
-        execute(interaction.user.id, interaction.channelId)
-    }
-
-    suspend fun exit() {
-        ephemeralResponse?.edit {
-            embed {
-                title = "Exiting"
-                description = "Configuration exited."
-            }
-            components = mutableListOf()
-        }
-        _list.clear()
-        exited = true
-    }
-
-    private suspend fun execute(userId: Snowflake, channelId: Snowflake) {
-        delay(Config.MESSAGE_TIMEOUT)
-        val next = _list.firstOrNull()
-        if (next == null || exited) {
-            command.chainList[userId] = null
-            if (!exited) ephemeralResponse?.edit {
-                embed {
-                    title = "Ended!"
-                    description = "${Emojis.checkAnimated.asTextEmoji()} The configuration ended successful!"
-                    color = Color(0, 255, 0)
-                }
-                components = mutableListOf()
-            }
-            command.buttonInteractionChainList[Pair(userId, channelId)] = null
-            command.messageInteractionChainList[Pair(userId, channelId)] = null
-            command.menuInteractionChainList[Pair(userId, channelId)] = null
-            return
-        }
-        next.start()
-        when (next.type) {
-            ConfigurationChainElement.InteractionType.MESSAGE -> {
-                command.buttonInteractionChainList[Pair(userId, channelId)] = null
-                command.menuInteractionChainList[Pair(userId, channelId)] = null
-                command.messageInteractionChainList[Pair(
-                    userId,
-                    channelId
-                )] = {
-                    this.message.delete()
-                    if (next.validate(this.message)) {
-                        next.execute(this.message)
-                        _list.remove(next)
-                        execute(userId, channelId)
-                    }
-                }
-            }
-            ConfigurationChainElement.InteractionType.BUTTON -> {
-                command.messageInteractionChainList[Pair(userId, channelId)] = null
-                command.menuInteractionChainList[Pair(userId, channelId)] = null
-                command.buttonInteractionChainList[Pair(
-                    userId,
-                    channelId
-                )] = {
-                    if (next.validate(this)) {
-                        next.execute(this)
-                        _list.remove(next)
-                        execute(userId, channelId)
-                    }
-                }
-            }
-            ConfigurationChainElement.InteractionType.MENU -> {
-                command.buttonInteractionChainList[Pair(userId, channelId)] = null
-                command.messageInteractionChainList[Pair(userId, channelId)] = null
-                command.menuInteractionChainList[Pair(
-                    userId,
-                    channelId
-                )] = {
-                    if (next.validate(this)) {
-                        next.execute(this)
-                        _list.remove(next)
-                        execute(userId, channelId)
-                    }
-                }
-            }
-            else -> {
-                _list.remove(next)
-                execute(userId, channelId)
-            }
-        }
-    }
-
-    open class ConfigurationChainElement(private val chain: ConfigurationChain) {
-        var type = InteractionType.NONE
-        var start: suspend EphemeralInteractionResponseBehavior.() -> Unit = {}
-        var startEmbedBuilder: (EmbedBuilder.() -> Unit)? = null
-        var startActionRowBuilder: List<(ActionRowBuilder.() -> Unit)> = listOf()
-
-        var validateMessage: suspend Message.() -> Boolean = { true }
-        var validateButtonInteraction: suspend ButtonInteraction.() -> Boolean = { true }
-        var validateMenuInteraction: suspend SelectMenuInteraction.() -> Boolean = { true }
-
-        var executeMessage: suspend Message.() -> Unit = {}
-        var executeButtonInteraction: suspend ButtonInteraction.() -> Unit = {}
-        var executeMenuInteraction: suspend SelectMenuInteraction.() -> Unit = {}
-
-        suspend fun start() {
-            chain.ephemeralResponse?.let { start.invoke(it) }
-            if (startEmbedBuilder != null) {
-                chain.ephemeralResponse?.edit {
-                    startEmbedBuilder?.let { embed(it) }
-                    if (startActionRowBuilder.isNotEmpty()) startActionRowBuilder.forEach {
-                        actionRow(it)
-                    } else components =
-                        mutableListOf()
-                }
-            }
-        }
-
-        suspend fun edit(clearComponents: Boolean? = null, builder: EmbedBuilder.() -> Unit) {
-            chain.ephemeralResponse?.edit {
-                embed(builder)
-                if (clearComponents == true) components = mutableListOf()
-            }
-        }
-
-        suspend fun validate(message: Message): Boolean = validateMessage.invoke(message)
-        suspend fun validate(interaction: ButtonInteraction): Boolean = validateButtonInteraction.invoke(interaction)
-        suspend fun validate(interaction: SelectMenuInteraction): Boolean = validateMenuInteraction.invoke(interaction)
-
-        open suspend fun execute(message: Message) = executeMessage.invoke(message)
-        open suspend fun execute(interaction: ButtonInteraction) = executeButtonInteraction.invoke(interaction)
-        open suspend fun execute(interaction: SelectMenuInteraction) = executeMenuInteraction.invoke(interaction)
-
-        enum class InteractionType {
-            BUTTON,
-            MESSAGE,
-            MENU,
-            NONE
-        }
-    }
-}
-
-@OptIn(KordPreview::class)
-internal suspend fun Interaction.respondHasNoPermission() = respondEphemeral {
-    embed {
-        title = "NO PERMISSION"
-    }
-}
-
-private fun randomString(): String {
-    val charPool: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-    return (1..48)
-        .map { charPool.random() }
-        .joinToString("")
-}
-
-fun Long.toDateString(): String {
-    val dateTime =
-        Instant.fromEpochMilliseconds(this).toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime()
-    return DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy").format(dateTime)
-}
-
-fun Long.toTimeString(): String {
-    val dateTime =
-        Instant.fromEpochMilliseconds(this).toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime()
-    return DateTimeFormatter.ofPattern("HH:mm").format(dateTime)
 }
